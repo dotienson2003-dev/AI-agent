@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cold-Chain Ops Console · Changi Cargo Hub</title>
+<script src="https://js.puter.com/v2/"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #f0f4f8;
+    --surface:   #ffffff;
+    --surface-2: #f7f9fc;
+    --border:    #dde3ec;
+    --border-2:  #c8d2e0;
+    --ink:       #0f1e2e;
+    --ink-2:     #4a5f75;
+    --ink-3:     #8a9db2;
+    --blue:      #1a56db;
+    --blue-lt:   #e8effe;
+    --blue-mid:  #93b4f5;
+    --teal:      #0891b2;
+    --teal-lt:   #e0f6fb;
+    --red:       #c8281e;
+    --red-lt:    #fde8e8;
+    --amber:     #b45309;
+    --amber-lt:  #fef3c7;
+    --green:     #065f46;
+    --green-lt:  #d1fae5;
+    --mono:      'DM Mono', monospace;
+    --disp:      'Syne', sans-serif;
+    --body:      'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-family: var(--disp); font-weight: 700; font-size: 14px;
+  }
+  .brand-text h1 {
+    font-family: var(--disp); font-size: 17px; font-weight: 700;
+    letter-spacing: -.2px; color: var(--ink);
+  }
+  .brand-text p { font-size: 11.5px; color: var(--ink-2); margin-top: 1px; }
+
+  .topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  .auth-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 12px;
+    font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+  }
+  .auth-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); flex-shrink: 0; }
+  .auth-chip.ready { border-color: #6ee7b7; background: var(--green-lt); color: var(--green); }
+  .auth-chip.ready .dot { background: #10b981; }
+  .auth-chip.waiting { border-color: #fcd34d; background: var(--amber-lt); color: var(--amber); }
+  .auth-chip.waiting .dot { background: #f59e0b; }
+
+  .clock-card {
+    background: var(--ink); border-radius: 10px;
+    padding: 8px 16px; display: flex; flex-direction: column; gap: 1px;
+  }
+  .clock-card .lbl { font-size: 9.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink-3); font-family: var(--mono); }
+  .clock-card .val { font-family: var(--mono); font-size: 20px; font-weight: 500; color: #f59e0b; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+  .clock-card .val.late { color: #f87171; }
+  .clock-card .dest { font-size: 10.5px; color: var(--ink-3); margin-top: 1px; }
+
+  /* ── LAYOUT ── */
+  .wrap {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 20px;
+    padding: 24px 32px 48px;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+  @media (max-width: 1000px) { .wrap { grid-template-columns: 1fr; } }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card:last-child { margin-bottom: 0; }
+  .card-head { margin-bottom: 14px; }
+  .card-head .eyebrow {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1.6px;
+    text-transform: uppercase; color: var(--blue); margin-bottom: 3px;
+  }
+  .card-head h2 { font-family: var(--disp); font-size: 15px; font-weight: 700; color: var(--ink); }
+
+  /* ── REGULATORY BANNER ── */
+  .reg-banner {
+    background: var(--teal-lt); border: 1px solid #a5e5f3;
+    border-left: 3px solid var(--teal);
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 12px; color: #0e4f61; line-height: 1.6;
+    margin-bottom: 14px;
+  }
+  .reg-banner strong { color: var(--teal); font-weight: 600; }
+
+  /* ── SCENARIO BUTTONS ── */
+  .scenario-row { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+  .scenario-btn {
+    background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--ink-2); font-family: var(--body); font-size: 11.5px;
+    padding: 7px 11px; border-radius: 7px; cursor: pointer; transition: .15s;
+    font-weight: 500;
+  }
+  .scenario-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
+  .scenario-btn:disabled { opacity: .45; cursor: default; }
+
+  /* ── CHAT ── */
+  .chat-log {
+    height: 400px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 12px;
+    padding-right: 4px; margin-bottom: 12px;
+  }
+  .chat-log::-webkit-scrollbar { width: 5px; }
+  .chat-log::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+
+  .msg { max-width: 94%; }
+  .msg.user { align-self: flex-end; }
+  .msg.agent { align-self: flex-start; }
+  .msg .who {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px;
+  }
+  .msg.user .bubble {
+    background: var(--blue); color: #fff;
+    padding: 11px 14px; border-radius: 10px 10px 2px 10px;
+    font-size: 13px; line-height: 1.5;
+  }
+  .msg.agent .bubble {
+    background: var(--surface-2); border: 1px solid var(--border);
+    padding: 12px 14px; border-radius: 10px 10px 10px 2px;
+    font-size: 13px; line-height: 1.5; color: var(--ink);
+  }
+
+  .rec-card { margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .rec-row { display: grid; grid-template-columns: 110px 1fr; font-size: 12px; border-top: 1px solid var(--border); }
+  .rec-row:first-child { border-top: none; }
+  .rec-row .k {
+    padding: 8px 10px; background: var(--surface-2);
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .6px;
+    text-transform: uppercase; color: var(--ink-3);
+  }
+  .rec-row .v { padding: 8px 10px; color: var(--ink); }
+  .data-flag {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-top: 8px; font-size: 11.5px; padding: 4px 10px;
+    border-radius: 6px; background: var(--amber-lt);
+    border: 1px solid #fcd34d; color: var(--amber); font-weight: 500;
+  }
+
+  .composer { display: flex; gap: 8px; }
+  .composer input {
+    flex: 1; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 13px; color: var(--ink);
+    font-family: var(--body); font-size: 13px;
+  }
+  .composer input::placeholder { color: var(--ink-3); }
+  .composer input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-lt); }
+  .composer button {
+    background: var(--blue); color: #fff; border: none;
+    border-radius: 8px; padding: 0 20px;
+    font-family: var(--disp); font-weight: 700; font-size: 13px;
+    cursor: pointer; letter-spacing: .2px;
+  }
+  .composer button:hover { background: #1447c0; }
+  .composer button:disabled { opacity: .45; cursor: default; }
+
+  /* ── DASHBOARD PANEL ── */
+
+  /* CAAS data strip */
+  .data-src {
+    font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+    margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+  }
+  .data-src a { color: var(--teal); text-decoration: none; }
+  .data-src a:hover { text-decoration: underline; }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #10b981;
+    box-shadow: 0 0 0 2px #d1fae5; flex-shrink: 0;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  .data-strip { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+  @media (max-width: 700px) { .data-strip { grid-template-columns: repeat(2,1fr); } }
+  .data-cell {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .data-cell .dl { font-family: var(--mono); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+  .data-cell .dv { font-family: var(--mono); font-size: 17px; font-weight: 500; color: var(--ink); }
+  .data-cell .ds { font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+  .data-cell .dv.up { color: var(--green); }
+
+  /* risk badge */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px;
+    font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+    letter-spacing: .4px; text-transform: uppercase; border: 1px solid;
+  }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .badge.low  { color: var(--green); border-color: #6ee7b7; background: var(--green-lt); }
+  .badge.low .dot  { background: #10b981; }
+  .badge.medium { color: var(--amber); border-color: #fcd34d; background: var(--amber-lt); }
+  .badge.medium .dot { background: #f59e0b; }
+  .badge.high { color: var(--red); border-color: #fca5a5; background: var(--red-lt); }
+  .badge.high .dot { background: #ef4444; }
+
+  /* KPI grid */
+  .kpi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+  @media (max-width: 700px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } }
+  .kpi {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 14px;
+  }
+  .kpi .lbl { font-family: var(--mono); font-size: 9.5px; letter-spacing: .8px; text-transform: uppercase; color: var(--ink-3); }
+  .kpi .num { font-family: var(--mono); font-size: 22px; font-weight: 500; margin-top: 6px; color: var(--ink); }
+  .kpi .num.amber { color: var(--amber); }
+  .kpi .num.red   { color: var(--red);   }
+  .kpi .num.green { color: var(--green); }
+  .kpi .num.blue  { color: var(--blue);  }
+  .kpi .sub { font-size: 11px; color: var(--ink-3); margin-top: 3px; }
+
+  /* Zone strip */
+  .zone-strip { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+  @media (max-width: 700px) { .zone-strip { grid-template-columns: repeat(2,1fr); } }
+  .zone-cell {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-top: 3px solid var(--blue-mid);
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .zone-cell.critical { border-top-color: #fca5a5; }
+  .zone-cell.ultra    { border-top-color: #93c5fd; }
+  .zone-cell.ambient  { border-top-color: #6ee7b7; }
+  .zone-cell .zn { font-family: var(--mono); font-size: 9px; letter-spacing: .8px; text-transform: uppercase; color: var(--ink-3); }
+  .zone-cell .zt { font-family: var(--mono); font-size: 17px; font-weight: 500; color: var(--ink); margin-top: 4px; }
+  .zone-cell .zs { font-size: 10.5px; color: var(--ink-2); margin-top: 2px; }
+  .zone-cell .zr { font-size: 9.5px; color: var(--ink-3); margin-top: 3px; font-family: var(--mono); }
+
+  /* FEFO bar chart */
+  .chart-wrap {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; margin-bottom: 16px;
+  }
+  .chart-title {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 14px;
+  }
+  .bars { display: flex; align-items: flex-end; gap: 32px; height: 120px; padding: 0 8px; }
+  .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }
+  .bar {
+    width: 48px; border-radius: 4px 4px 0 0;
+    background: linear-gradient(180deg, var(--blue) 0%, #93b4f5 100%);
+    transition: height .6s cubic-bezier(.2,.8,.2,1); position: relative;
+  }
+  .bar.after { background: linear-gradient(180deg, #f59e0b 0%, #fcd34d 100%); }
+  .bar-val {
+    position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+    font-family: var(--mono); font-size: 12px; color: var(--ink);
+    white-space: nowrap; font-weight: 500;
+  }
+  .bar-lbl { margin-top: 8px; font-size: 11px; color: var(--ink-3); text-align: center; }
+
+  /* SKU table */
+  table.sku-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.sku-table th {
+    text-align: left; font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: .8px; text-transform: uppercase; color: var(--ink-3);
+    padding: 8px 10px; border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  table.sku-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--ink); }
+  table.sku-table tr:last-child td { border-bottom: none; }
+  table.sku-table tr:hover td { background: var(--blue-lt); }
+  .pill {
+    padding: 2px 9px; border-radius: 20px; font-size: 10.5px;
+    font-weight: 600; letter-spacing: .2px;
+  }
+  .pill.Urgent { background: var(--red-lt);   color: var(--red);   border: 1px solid #fca5a5; }
+  .pill.High   { background: var(--amber-lt); color: var(--amber); border: 1px solid #fcd34d; }
+  .pill.Normal { background: var(--green-lt); color: var(--green); border: 1px solid #6ee7b7; }
+
+  /* Recommendation summary */
+  .rec-summary {
+    border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden;
+  }
+  .rec-summary .rline {
+    display: flex; justify-content: space-between; gap: 10px;
+    padding: 9px 14px; border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+  }
+  .rec-summary .rline:last-child { border-bottom: none; }
+  .rec-summary .rline:nth-child(odd) { background: var(--surface-2); }
+  .rec-summary .rline .k { color: var(--ink-3); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+  .rec-summary .rline .v { text-align: right; max-width: 65%; color: var(--ink); }
+
+  /* Loading dots */
+  .loading-dots span { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--blue); margin: 0 2px; animation: blink 1.2s infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: .2s; }
+  .loading-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%,80%,100%{opacity:.2;} 40%{opacity:1;} }
+
+  /* Divider */
+  .section-label {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  footer {
+    text-align: center; color: var(--ink-3); font-size: 11px;
+    padding: 8px 0 32px; line-height: 1.8; border-top: 1px solid var(--border);
+    background: var(--surface); margin-top: 8px;
+  }
+  footer a { color: var(--blue); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">CC</div>
+    <div class="brand-text">
+      <h1>Cold-Chain Ops Console</h1>
+      <p>Senior Warehouse Operations Planner &middot; Changi Cargo Hub T5 &middot; HSA-GDP Compliant</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="auth-chip waiting" id="authPill"><span class="dot"></span><span id="authText">Loading AI&hellip;</span></div>
+    <div class="clock-card">
+      <div class="lbl">Time to Departure</div>
+      <div class="val" id="clockVal">02:00:00</div>
+      <div class="dest">MED001 &middot; Insulin &rarr; Dock 7B &middot; SQ7401</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- LEFT: CHAT -->
+  <div>
+    <div class="card">
+      <div class="card-head">
+        <div class="eyebrow">Agent Console</div>
+        <h2>Ask the Planner</h2>
+      </div>
+      <div class="reg-banner">
+        <strong>HSA-GDP &amp; IATA TCR Active</strong> &mdash; Singapore Health Sciences Authority Good Distribution Practice. Pharmaceutical 2&ndash;8&deg;C &middot; mRNA &minus;70&deg;C &middot; All decisions audit-logged.
+      </div>
+      <div class="scenario-row">
+        <button class="scenario-btn" data-scenario="1">&#9654; Urgent insulin, 2hr window</button>
+        <button class="scenario-btn" data-scenario="2">&#9654; Missing expiry data</button>
+        <button class="scenario-btn" data-scenario="3">&#9654; Picker capacity &minus;33%</button>
+        <button class="scenario-btn" data-scenario="4">&#9654; Temperature excursion</button>
+      </div>
+      <div class="chat-log" id="chatLog"></div>
+      <div class="composer">
+        <input id="chatInput" type="text" placeholder="e.g. Which SKUs are at expiry risk today?" />
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: DASHBOARD -->
+  <div>
+
+    <!-- CAAS data -->
+    <div class="card">
+      <div class="data-src">
+        <span class="live-dot"></span>
+        Changi Airport Air Cargo &mdash;
+        <a href="https://data.gov.sg/datasets/d_e92d5d0bdbf7601a664102f071762893/view" target="_blank">data.gov.sg &middot; CAAS Annual Report 2024</a>
+      </div>
+      <div class="data-strip">
+        <div class="data-cell"><div class="dl">Monthly Avg</div><div class="dv">174.2K t</div><div class="ds">Air cargo tonnes</div></div>
+        <div class="data-cell"><div class="dl">YoY Growth</div><div class="dv up">+4.2%</div><div class="ds">vs prior year</div></div>
+        <div class="data-cell"><div class="dl">FY2024 Total</div><div class="dv">2.09M t</div><div class="ds">Annual throughput</div></div>
+        <div class="data-cell"><div class="dl">Global Rank</div><div class="dv">#6</div><div class="ds">Busiest cargo airports</div></div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div><div class="eyebrow">Live KPIs</div><h2 style="font-family:var(--disp);font-size:15px;font-weight:700;">Warehouse Status</h2></div>
+        <span class="badge medium" id="riskBadge"><span class="dot"></span><span id="riskBadgeText">Medium Risk</span></span>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="lbl">FEFO Compliance</div><div class="num blue" id="kpiFefo">92%</div><div class="sub" id="kpiFefoSub">baseline</div></div>
+        <div class="kpi"><div class="lbl">Urgent Order</div><div class="num amber" id="kpiUrgent">On Track</div><div class="sub">MED001 &middot; Insulin</div></div>
+        <div class="kpi"><div class="lbl">Expiry Risk SKUs</div><div class="num" id="kpiExpiry">2</div><div class="sub">near-expiry items</div></div>
+        <div class="kpi"><div class="lbl">Picker Utilisation</div><div class="num" id="kpiPicker">88%</div><div class="sub" id="kpiPickerSub">6 pickers active</div></div>
+        <div class="kpi"><div class="lbl">Cold-Chain Risk</div><div class="num amber" id="kpiColdRisk">Medium</div><div class="sub">Zone A</div></div>
+        <div class="kpi"><div class="lbl">Action Required</div><div class="num" style="font-size:13px;line-height:1.35" id="kpiAction">Awaiting query</div><div class="sub">&nbsp;</div></div>
+      </div>
+    </div>
+
+    <!-- Zones -->
+    <div class="card">
+      <div class="section-label">Cold-chain zones &mdash; HSA-GDP temperature requirements</div>
+      <div class="zone-strip">
+        <div class="zone-cell critical"><div class="zn">Cold Zone A</div><div class="zt">2&ndash;8&deg;C</div><div class="zs">Insulin &middot; Vaccine</div><div class="zr">HSA-GDP &sect;5.3</div></div>
+        <div class="zone-cell critical"><div class="zn">Cold Zone B</div><div class="zt">2&ndash;8&deg;C</div><div class="zs">Bio samples</div><div class="zr">HSA-GDP &sect;5.3</div></div>
+        <div class="zone-cell ultra"><div class="zn">Ultra-Low</div><div class="zt">&minus;70&deg;C</div><div class="zs">mRNA vaccines</div><div class="zr">HSA-GDP &sect;5.4</div></div>
+        <div class="zone-cell ambient"><div class="zn">Ambient</div><div class="zt">15&ndash;25&deg;C</div><div class="zs">Supplements &middot; OTC</div><div class="zr">HSA-GDP &sect;5.1</div></div>
+      </div>
+    </div>
+
+    <!-- FEFO chart -->
+    <div class="card">
+      <div class="section-label">FEFO compliance &mdash; before vs after prioritisation</div>
+      <div class="chart-wrap">
+        <div class="bars">
+          <div class="bar-col"><div class="bar" id="barBefore" style="height:92%"><span class="bar-val" id="barBeforeVal">92%</span></div><div class="bar-lbl">Before</div></div>
+          <div class="bar-col"><div class="bar after" id="barAfter" style="height:4%"><span class="bar-val" id="barAfterVal">&mdash;</span></div><div class="bar-lbl">After</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKU table -->
+    <div class="card">
+      <div class="section-label">Active inventory snapshot &mdash; Changi Cargo Hub</div>
+      <table class="sku-table" style="margin-bottom:0;">
+        <thead><tr><th>SKU</th><th>Product</th><th>Expiry</th><th>Qty</th><th>Zone</th><th>Priority</th></tr></thead>
+        <tbody id="skuTable"></tbody>
+      </table>
+    </div>
+
+    <!-- Recommendation -->
+    <div class="card">
+      <div class="section-label">Latest AI recommendation</div>
+      <div class="rec-summary" id="recSummary">
+        <div class="rline"><span class="k">Decision</span><span class="v">Ask a question to generate a recommendation</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  Changi Cargo Hub &middot; Cold-Chain Ops Console &mdash;
+  AI powered by <a href="https://puter.com" target="_blank">Puter.js</a> (free &middot; no API key required) &middot;
+  Cargo data: <a href="https://data.gov.sg/datasets/d_e92d5d0bdbf7601a664102f071762893/view" target="_blank">data.gov.sg &mdash; CAAS</a> &middot;
+  Regulatory ref: <a href="https://www.hsa.gov.sg" target="_blank">HSA Good Distribution Practice</a>
+</footer>
+
+<script>
+// ── Inventory ────────────────────────────────────────────────────────────────
+function daysFromNow(n) {
+  var d = new Date(); d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0,10);
+}
+var WH = {
+  facility: "Changi Cargo Hub — Cold-Chain Annex, Terminal 5",
+  operator: "SingPost Logistics / DHL Supply Chain (3PL)",
+  inventory: [
+    { sku:"MED001", product:"Actrapid HM Insulin (100IU/mL, 10x10mL)",      expiry:daysFromNow(1),  qty:120, zone:"Cold Zone A", priority:"Urgent" },
+    { sku:"BIO042", product:"Vaxigrip Tetra Influenza Vaccine (QIV)",         expiry:daysFromNow(3),  qty:80,  zone:"Cold Zone A", priority:"High"   },
+    { sku:"BIO107", product:"Comirnaty COVID-19 mRNA Booster (30mcg/dose)",   expiry:daysFromNow(9),  qty:24,  zone:"Ultra-Low",   priority:"High"   },
+    { sku:"LAB205", product:"Diagnostic Blood Serum Panel (Mixed Pathogen)",  expiry:daysFromNow(2),  qty:60,  zone:"Cold Zone B", priority:"Normal" },
+    { sku:"OTC310", product:"Vitamin C + Zinc Effervescent Tabs (20s)",       expiry:daysFromNow(45), qty:500, zone:"Ambient",     priority:"Normal" }
+  ],
+  pickers:{ total:6, baseUtilisation:88 },
+  baselineKpi:{ fefoCompliance:92, expiryRiskSkus:2, urgentStatus:"On Track", coldChainRisk:"Medium" },
+  deadlineMinutes:120
+};
+
+// ── SKU table ────────────────────────────────────────────────────────────────
+document.getElementById('skuTable').innerHTML = WH.inventory.map(function(r) {
+  return '<tr><td><b style="font-size:12px;">'+r.sku+'</b></td>' +
+    '<td style="font-size:12px;color:var(--ink-2);">'+r.product+'</td>' +
+    '<td><span style="font-family:var(--mono);font-size:12px;">'+r.expiry+'</span></td>' +
+    '<td><span style="font-family:var(--mono);">'+r.qty+'</span></td>' +
+    '<td style="font-size:12px;color:var(--ink-2);">'+r.zone+'</td>' +
+    '<td><span class="pill '+r.priority+'">'+r.priority+'</span></td></tr>';
+}).join('');
+
+// ── Clock ────────────────────────────────────────────────────────────────────
+var secondsLeft = WH.deadlineMinutes * 60;
+function tickClock() {
+  if (secondsLeft > 0) secondsLeft--;
+  var h = Math.floor(secondsLeft/3600), m = Math.floor((secondsLeft%3600)/60), s = secondsLeft%60;
+  var el = document.getElementById('clockVal');
+  el.textContent = [h,m,s].map(function(v){ return String(v).padStart(2,'0'); }).join(':');
+  el.className = 'val' + (secondsLeft < 900 ? ' late' : '');
+}
+tickClock(); setInterval(tickClock, 1000);
+
+// ── Auth pill ────────────────────────────────────────────────────────────────
+function setAuthReady(name) {
+  document.getElementById('authPill').className = 'auth-chip ready';
+  document.getElementById('authText').textContent = name ? 'AI · '+name : 'AI Ready';
+}
+function setAuthWaiting(msg) {
+  document.getElementById('authPill').className = 'auth-chip waiting';
+  document.getElementById('authText').textContent = msg || 'Sign in on first message';
+}
+
+window.addEventListener('load', function() {
+  if (typeof puter === 'undefined') { setAuthWaiting('Puter offline'); return; }
+  puter.auth.isSignedIn().then(function(yes) {
+    if (yes) puter.auth.getUser().then(function(u){ setAuthReady(u&&u.username?u.username:''); }).catch(function(){ setAuthReady(''); });
+    else setAuthWaiting('Sign in on first message');
+  }).catch(function(){ setAuthWaiting('Sign in on first message'); });
+});
+
+// ── System prompt ────────────────────────────────────────────────────────────
+var SYSTEM_PROMPT =
+'You are a Senior Warehouse Operations Planner at '+WH.facility+', operated by '+WH.operator+'.\n\n'+
+'REGULATORY FRAMEWORK (non-negotiable):\n'+
+'- HSA Good Distribution Practice (GDP) and IATA Temperature Control Regulations (TCR) 9th Edition\n'+
+'- Cold Zone A/B: 2-8C continuous cold chain (HSA-GDP section 5.3) — insulin and vaccines; never freeze\n'+
+'- Ultra-Low zone: -70C +/-10C (HSA-GDP section 5.4) — mRNA vaccines; dedicated QP release required\n'+
+'- Ambient zone: 15-25C (HSA-GDP section 5.1) — OTC and supplements\n'+
+'- Cold-chain integrity for pharmaceutical goods ALWAYS overrides cost and throughput speed\n'+
+'- Any FEFO deviation must be documented for HSA audit trail\n\n'+
+'CURRENT WAREHOUSE STATE (source of truth — do not invent SKUs not listed):\n'+
+'Inventory: '+JSON.stringify(WH.inventory)+'\n'+
+'Pickers: '+WH.pickers.total+' on floor, baseline utilisation '+WH.pickers.baseUtilisation+'%\n'+
+'Baseline KPIs: FEFO compliance '+WH.baselineKpi.fefoCompliance+'%, expiry-risk SKUs '+WH.baselineKpi.expiryRiskSkus+', urgent status '+WH.baselineKpi.urgentStatus+', cold-chain risk '+WH.baselineKpi.coldChainRisk+'\n'+
+'Dock deadline: MED001 must depart within '+WH.deadlineMinutes+' minutes — Dock 7B, Flight SQ7401, destination HKIA\n\n'+
+'DECISION RULES:\n'+
+'1. Never guess missing expiry or temperature data — flag it and recommend WMS verification or physical check\n'+
+'2. If picker capacity drops, recalculate utilisation and recommend reallocating from ambient zone first\n'+
+'3. FEFO = earliest-expiry SKUs ship first; any deviation must be justified and flagged for audit\n'+
+'4. A temperature excursion above zone threshold triggers immediate batch quarantine pending QP review\n'+
+'5. When data conflicts, flag the conflict — do not silently pick one value\n\n'+
+'Respond ONLY with a single valid JSON object — no markdown fences, no preamble:\n'+
+'{\n'+
+'  "chat_reply": "1-3 sentence answer in the voice of the Senior Planner",\n'+
+'  "decision": "short decision statement",\n'+
+'  "fefo_impact": "FEFO impact with before/after % if applicable",\n'+
+'  "fefo_before": <integer percent>,\n'+
+'  "fefo_after": <integer percent>,\n'+
+'  "risk_level": "Low" or "Medium" or "High",\n'+
+'  "action": "recommended action under 12 words",\n'+
+'  "reason": "reason under 25 words",\n'+
+'  "expiry_risk_skus": <integer>,\n'+
+'  "picker_utilisation": <integer percent>,\n'+
+'  "urgent_status": "On Track" or "At Risk" or "Delayed",\n'+
+'  "missing_data_flag": true or false,\n'+
+'  "missing_data_note": "description of missing data, or empty string"\n'+
+'}';
+
+var SCENARIOS = {
+  "1":"MED001 Actrapid insulin (120 units, Cold Zone A) must depart via Dock 7B on Flight SQ7401 in under 2 hours. If we prioritise it ahead of BIO042 influenza vaccine stock, what is the exact FEFO compliance impact and downstream risk to remaining pharmaceutical SKUs?",
+  "2":"The WMS is returning a null expiry date for LAB205 Diagnostic Blood Serum Panel in Cold Zone B. What is the correct HSA-GDP protocol, and how does this affect FEFO compliance and the dispatch priority queue?",
+  "3":"Two of our six pickers have been urgently reassigned to an adjacent dry-goods emergency. With only 4 pickers on the floor, can we still meet the MED001 dock deadline and what adjustments should we make?",
+  "4":"Cold Zone A sensor is intermittently reading 9.4C over the last 15 minutes — above the HSA-GDP 2-8C threshold for MED001 insulin and BIO042 vaccines. What is the mandatory protocol and our regulatory risk exposure?"
+};
+
+// ── Chat ─────────────────────────────────────────────────────────────────────
+var chatLog = document.getElementById('chatLog');
+var chatInput = document.getElementById('chatInput');
+var sendBtn = document.getElementById('sendBtn');
+var conversationHistory = [];
+
+function esc(s){ if(!s) return ''; var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function rc(l){ var x=(l||'').toLowerCase(); return x==='low'?'low':x==='high'?'high':'medium'; }
+
+function addUserBubble(text) {
+  var d=document.createElement('div'); d.className='msg user';
+  d.innerHTML='<div class="who">Supervisor</div><div class="bubble">'+esc(text)+'</div>';
+  chatLog.appendChild(d); chatLog.scrollTop=chatLog.scrollHeight;
+}
+function addAgentBubble(parsed, fallback) {
+  var d=document.createElement('div'); d.className='msg agent';
+  if(parsed){
+    d.innerHTML='<div class="who">Planner AI</div><div class="bubble">'+esc(parsed.chat_reply||'')+
+      '<div class="rec-card">'+
+      '<div class="rec-row"><div class="k">Decision</div><div class="v">'+esc(parsed.decision||'—')+'</div></div>'+
+      '<div class="rec-row"><div class="k">FEFO Impact</div><div class="v">'+esc(parsed.fefo_impact||'—')+'</div></div>'+
+      '<div class="rec-row"><div class="k">Risk Level</div><div class="v">'+esc(parsed.risk_level||'—')+'</div></div>'+
+      '<div class="rec-row"><div class="k">Action</div><div class="v">'+esc(parsed.action||'—')+'</div></div>'+
+      '<div class="rec-row"><div class="k">Reason</div><div class="v">'+esc(parsed.reason||'—')+'</div></div>'+
+      '</div>'+
+      (parsed.missing_data_flag?'<div class="data-flag">&#9888; '+esc(parsed.missing_data_note||'Manual verification recommended')+'</div>':'')+
+      '</div>';
+  } else {
+    d.innerHTML='<div class="who">Planner AI</div><div class="bubble">'+esc(fallback)+'</div>';
+  }
+  chatLog.appendChild(d); chatLog.scrollTop=chatLog.scrollHeight;
+}
+function addLoadingBubble(){
+  var d=document.createElement('div'); d.className='msg agent'; d.id='loadingBubble';
+  d.innerHTML='<div class="who">Planner AI</div><div class="bubble"><span class="loading-dots"><span></span><span></span><span></span></span></div>';
+  chatLog.appendChild(d); chatLog.scrollTop=chatLog.scrollHeight;
+}
+function removeLoadingBubble(){ var e=document.getElementById('loadingBubble'); if(e) e.remove(); }
+function setDisabled(v){
+  chatInput.disabled=v; sendBtn.disabled=v;
+  document.querySelectorAll('.scenario-btn').forEach(function(b){ b.disabled=v; });
+}
+function updateDashboard(p){
+  document.getElementById('kpiFefo').textContent=(p.fefo_after!=null?p.fefo_after:p.fefo_before!=null?p.fefo_before:92)+'%';
+  document.getElementById('kpiFefoSub').textContent=p.fefo_before?'from '+p.fefo_before+'% baseline':'baseline';
+  document.getElementById('kpiExpiry').textContent=p.expiry_risk_skus!=null?p.expiry_risk_skus:2;
+  document.getElementById('kpiPicker').textContent=(p.picker_utilisation!=null?p.picker_utilisation:88)+'%';
+  var u=document.getElementById('kpiUrgent');
+  u.textContent=p.urgent_status||'On Track';
+  u.className='num '+(p.urgent_status==='Delayed'?'red':p.urgent_status==='At Risk'?'amber':'green');
+  var c=document.getElementById('kpiColdRisk');
+  c.textContent=p.risk_level||'Medium';
+  c.className='num '+(rc(p.risk_level)==='high'?'red':rc(p.risk_level)==='low'?'green':'amber');
+  document.getElementById('kpiAction').textContent=p.action||'Awaiting query';
+  var badge=document.getElementById('riskBadge');
+  badge.className='badge '+rc(p.risk_level);
+  document.getElementById('riskBadgeText').textContent=(p.risk_level||'Medium')+' Risk';
+  var bef=p.fefo_before!=null?p.fefo_before:92;
+  var aft=p.fefo_after!=null?p.fefo_after:bef;
+  document.getElementById('barBefore').style.height=Math.max(bef,4)+'%';
+  document.getElementById('barAfter').style.height=Math.max(aft,4)+'%';
+  document.getElementById('barBeforeVal').textContent=bef+'%';
+  document.getElementById('barAfterVal').textContent=aft+'%';
+  document.getElementById('recSummary').innerHTML=
+    '<div class="rline"><span class="k">Decision</span><span class="v">'+esc(p.decision||'—')+'</span></div>'+
+    '<div class="rline"><span class="k">FEFO Impact</span><span class="v">'+esc(p.fefo_impact||'—')+'</span></div>'+
+    '<div class="rline"><span class="k">Risk Level</span><span class="v">'+esc(p.risk_level||'—')+'</span></div>'+
+    '<div class="rline"><span class="k">Action</span><span class="v">'+esc(p.action||'—')+'</span></div>'+
+    '<div class="rline"><span class="k">Reason</span><span class="v">'+esc(p.reason||'—')+'</span></div>';
+}
+
+// ── Main: correct Puter.js API ───────────────────────────────────────────────
+async function askAgent(question) {
+  addUserBubble(question);
+  conversationHistory.push({ role:'user', content:question });
+  setDisabled(true); addLoadingBubble();
+  try {
+    if (typeof puter === 'undefined') throw new Error('Puter.js did not load. Serve this file over HTTP/HTTPS (not file://), then refresh.');
+    var messages = [{ role:'system', content:SYSTEM_PROMPT }].concat(conversationHistory);
+    var result = await puter.ai.chat(messages, { model:'claude-sonnet-4-6' });
+    var textContent = '';
+    if (result && result.message && result.message.content) {
+      var c = result.message.content;
+      textContent = Array.isArray(c) ? (c[0]&&c[0].text?c[0].text:'') : String(c);
+    } else if (typeof result === 'string') {
+      textContent = result;
+    }
+    var cleaned = textContent.replace(/```json|```/g,'').trim();
+    var parsed = null;
+    try { parsed = JSON.parse(cleaned); } catch(e) {}
+    removeLoadingBubble();
+    if (parsed) {
+      addAgentBubble(parsed); updateDashboard(parsed);
+      conversationHistory.push({ role:'assistant', content:textContent });
+      puter.auth.getUser().then(function(u){ setAuthReady(u&&u.username?u.username:''); }).catch(function(){ setAuthReady(''); });
+    } else {
+      addAgentBubble(null, textContent||'No response. Please try again.');
+    }
+  } catch(err) {
+    removeLoadingBubble();
+    var m = err.message||'';
+    var hint;
+    if (/sign.?in|auth|login|popup|blocked/i.test(m))
+      hint = 'A Puter sign-in window appeared — allow the popup in your browser, create a free account, then ask again.';
+    else if (/file:|protocol/i.test(m))
+      hint = 'Puter.js requires HTTP/HTTPS. Open this file via a local server or GitHub Pages — not file://. See the hosting guide below.';
+    else
+      hint = 'AI error: '+(m||'unknown')+'. Please try again.';
+    addAgentBubble(null, hint);
+    setAuthWaiting('Error — try again');
+    console.error(err);
+  } finally { setDisabled(false); }
+}
+
+sendBtn.addEventListener('click', function(){ var v=chatInput.value.trim(); if(!v) return; chatInput.value=''; askAgent(v); });
+chatInput.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); sendBtn.click(); } });
+document.querySelectorAll('.scenario-btn').forEach(function(b){ b.addEventListener('click', function(){ askAgent(SCENARIOS[b.dataset.scenario]); }); });
+</script>
+</body>
+</html>
